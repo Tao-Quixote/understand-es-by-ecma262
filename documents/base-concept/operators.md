@@ -70,6 +70,84 @@ let obj2 = {
 obj2 > 1	// true，此时会调用 obj2.toString 方法，该方法的返回值为 2
 ```
 
+### 从规范的角度理解关系操作符的执行流程
+
+下面我们以 `RelationalExpression < ShiftExpression`(小于) 做例子：
+
+**[主要流程步骤规范](https://tc39.github.io/ecma262/#sec-relational-operators-runtime-semantics-evaluation) 如下**：
+
+```ecma262
+// Runtime Semantics: Evaluation
+
+RelationalExpression: RelationalExpression < ShiftExpression
+
+1、 Let lref be the result of evaluating RelationalExpression.
+2、 Let lval be ? GetValue(lref).	// 获取左边操作数的值
+3、 Let rref be the result of evaluating ShiftExpression.
+4、 Let rval be ? GetValue(rref).	// 获取右边操作数的值
+	// 进行抽象的关系比较
+5、 Let r be the result of performing Abstract Relational Comparison lval < rval.
+6、 ReturnIfAbrupt(r). 
+	// 如果比较结果为 undefined，则返回 false
+7、 If r is undefined, return false. Otherwise, return r.
+```
+
+[GetValue 规范(ecma262)](https://tc39.github.io/ecma262/#sec-getvalue) 如下：
+
+```ecma262
+// GetValue 该步骤主要用来定义如何获取操作数标识符的值
+1、ReturnIfAbrupt(V).
+2、If Type(V) is not Reference, return V.
+3、Let base be GetBase(V).
+4、If IsUnresolvableReference(V) is true, throw a ReferenceError exception.
+5、If IsPropertyReference(V) is true, then
+	a、If HasPrimitiveBase(V) is true, then
+		i、Assert: In this case, base will never be undefined or null.
+		ii、Set base to ! ToObject(base).
+	b、Return ? base.[[Get]](GetReferencedName(V), GetThisValue(V)).
+6、Else base must be an Environment Record,
+	a、Return ? base.GetBindingValue(GetReferencedName(V), IsStrictReference(V)) (see 8.1.1).
+```
+
+[Abstract Relational Comparison lval < rval 规范(ecma262)](https://tc39.github.io/ecma262/#sec-abstract-relational-comparison) 如下：
+
+```ecma262
+  // 获取基本数据类型，ToPrimitive 方法会将入参转换为 JavaScript 中的基本数据类型
+1、If the LeftFirst flag is true, then
+	a、Let px be ? ToPrimitive(x, hint Number).
+	b、Let py be ? ToPrimitive(y, hint Number).
+  // 获取基本数据类型，ToPrimitive 方法会将入参转换为 JavaScript 中的基本数据类型
+2、Else the order of evaluation needs to be reversed to preserve left to right evaluation,
+	a、Let py be ? ToPrimitive(y, hint Number).
+	b、Let px be ? ToPrimitive(x, hint Number).
+	// 如果 px 与 px 都是字符串，则按照字符串的字符编码逐一进行数值比较
+3、If Type(px) is String and Type(py) is String, then
+	a、If IsStringPrefix(py, px) is true, return false.
+	b、If IsStringPrefix(px, py) is true, return true.
+	c、Let k be the smallest nonnegative integer such that the code unit at index k within px is different
+		from the code unit at index k within py. (There must be such a k, for neither String is a prefix of the other.)
+	d、Let m be the integer that is the numeric value of the code unit at index k within px.
+	e、Let n be the integer that is the numeric value of the code unit at index k within py.
+	f、If m < n, return true. Otherwise, return false.
+  // 如果并非两个参数都是字符串，首先将参数强制转换为 Number 类型，转换规则见 [JavaScript 中的数据类型 - Number 类型](./types.md#number)
+4、Else,
+	a、NOTE: Because px and py are primitive values evaluation order is not important.
+	// 两个参数都强制转换为数字
+	b、Let nx be ? ToNumber(px).
+	c、Let ny be ? ToNumber(py).
+	d、If nx is NaN, return undefined.
+	e、If ny is NaN, return undefined.
+	f、If nx and ny are the same Number value, return false.
+	g、If nx is +0 and ny is -0, return false.
+	h、If nx is -0 and ny is +0, return false.
+	i、If nx is +∞, return false.
+	j、If ny is +∞, return true.
+	k、If ny is -∞, return false.
+	l、If nx is -∞, return true.
+	m、If the mathematical value of nx is less than the mathematical value of ny—note that these
+		mathematical values are both finite and not both zero—return true. Otherwise, return false.
+```
+
 ## Author Info 🌟
 
 * [GitHub](https://github.com/Tao-Quixote)
