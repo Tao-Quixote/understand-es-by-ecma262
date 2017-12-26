@@ -7,8 +7,10 @@
 ## 目录 📙
 
 * 基本概念
-	* [操作符](./documents/base-concept/operators.md)
 	* [数据类型](./documents/base-concept/types.md)
+	* [操作符](./documents/base-concept/operators.md)
+* 翻译
+	* ["Typeof null" 的历史](./documents/translations/typeof-null.md)
 
 ## 参考 💢
 
