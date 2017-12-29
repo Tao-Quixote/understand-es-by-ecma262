@@ -94,6 +94,41 @@ JavaScript 的实现中使用 32 位的长度存储数据，并使用低 3 位�
 
 综上，`typeof null` 的返回值是 'object'。
 
+## <span id="isArray">Array.isArray()</span>
+
+在 JavaScript 中，`Array.isArray` 方法的本质是用来检查数据类型的，该方法特别的地方在于其只用来检查一种数据类型，即被检测的值是否为数组。我们知道，可以通过 `variable instanceof Array` 这种方式来判断一个值是否为数组，为什么还要设置一个单独的方法来判断一个变量中的值是不是数组呢？这其实是一个历史遗留问题，也是一个涉及到 web 安全的问题：
+
+在 ECMAScript3 中，实现该规范的环境假设只存在一个 global(在浏览器中为 window 对象)，该 global 保存了所有内建方法、属性的实现。在浏览器的实现中，一个 tab 标签页中只存在一个 window 对象，该标签页中所有关于类型检测的方法、属性等，都是从该对象中获取。在浏览器发展的早期这是没有问题的，因为一个标签页中确实只有一个页面，不存在其他其他页面，一个 global 完全可以实现；但是随着浏览器的发展，我们可以在页面中通过 iframe 等手段内嵌其他页面，这些内嵌的页面与当前页面可能同域也可能不同域，并且不同页面之间可以相互通信。
+
+在两个不同页面的通信过程中，就出现了不能判断一个数值是否为数组的情况：
+
+* `typeof` 操作符在判断数组时的输出为 `object`；
+* `Object.prototype.toString()` 方法可以通过输出是否为 **"[object Array]"** 来判断是否为数组，但是这是在 `toString()` 方法没有被修改的情况下，虽然被修改的几率比较小，但是也有点脆弱不可靠；
+* `varible instanceof Array` 操作符是通过判断 **Array.prototype** 对象是否在 **varible** 的原型链上来判断 varible 是不是 Array 类型的，这在同一个 global 中是没有问题的，但是在有多个 global 时(原页面与内嵌页面中存在两个不同的 global)，因为 JavaScript 中判断两个引用类型的值是否相同时会比较两个引用类型的内存地址是否相同，而两个不同 global 中 **Array.prototype** 对象的内存地址是不一样的，这就导致了两个页面 A、B(原页面 A 与内嵌页面 B)在通信过程中传递数组 `arr` 时，在页面 A 中判断页面 B 传递来的数组时，会检查 A 页面中 global(A) 对象中的 Array.prototype(A) 对象是否在数组 `arr` 的原型链上，但是数组 `arr` 是在页面 B 中生成的，其原型链中的 Array.prototype(B) 对象在 global(B) 中，两个 Array.prototype 是不同的，所以虽然 `arr` 是数组，但是通过 `instanceof` 操作符判断的结果是 false；
+
+以上，介绍了 `Array.isArray` 方法存在的必要性，下面看一下在 ecma262 中是如何定义其判断步骤的：
+
+**[主要规范步骤](https://tc39.github.io/ecma262/#sec-array.isarray)如下：**
+
+```ecma262
+Return ? IsArray(arg).
+```
+
+**[IsArray(arg)](https://tc39.github.io/ecma262/#sec-isarray)**:
+
+```ecma262
+The abstract operation IsArray takes one argument argument, and performs the following steps:	// 只接受一个参数
+
+1、If Type(argument) is not Object, return false. // 非对象返回 false
+2、If argument is an Array exotic object, return true. // 是数组返回 true
+3、If argument is a Proxy exotic object, then // 如果是 proxy，执行如下流程
+	// 如果参数的内部属性 [[ProxyHandler]] 是 null，抛出类型异常错误
+	a、If argument.[[ProxyHandler]] is null, throw a TypeError exception.
+	b、Let target be argument.[[ProxyTarget]]. // 获取内部属性 [[ProxyTarget]]
+	c、Return ? IsArray(target). // 递归执行内部属性 [[ProxyTarget]] 是否为数组
+4、Return false. // 如不符合以上条件，返回 false
+```
+
 ## <span id="toString">Object.prototype.toString()</span>
 
 在 JavaScript 中，所有以 `[[propertyName]]` 形式表示的都是内部属性，这些内部属性只能在语言内部访问到，不对外部暴露，所以开发者不能直接通过代码访问这些属性，也就拿不到这些属性的值。通常情况下，这些内部属性供语言实现在内部使用来实现一些功能；也有浏览器厂商会通过非标准的方式向外部暴露一些内部属性，如 Chrome 浏览器中暴露的 `__proto__` 属性(规范中规定的基于该内部属性进行比较操作的方法为 **object.getPrototypeOf()**)。需要注意的是，虽然浏览器厂商向外暴露了这些内部属性，但这些实现是没有写在规范(ecma262) 中的，在未来可能会被移除，所以在生产环境中不建议使用这些不规范的属性。
