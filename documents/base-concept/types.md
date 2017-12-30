@@ -22,6 +22,8 @@ JavaScript 中的数据类型分类两大类：
 
 关于 ES6 之前的数据类型分类，可以参考 Dr. Axel Rauschmayer 的博文 [Categorizing values in JavaScript(对 JavaScript 中的值进行分类)](http://2ality.com/2013/01/categorizing-values.html)。
 
+## 给 JavaScript 中的数据分类 🍭
+
 JavaScript 中有四种方式给数值分类：
 
 * 内部属性[[class]]：该属性保存着一个标示当前值数据类型的字符串
@@ -29,7 +31,8 @@ JavaScript 中有四种方式给数值分类：
 * instanceof：用来给对象分类(Function, Array, Object, Date, RegExp...)
 * Array.isArray()：该方法用来判断一个值是否是数组的实例
 
-## <span id="typeof">typeof</span>
+### <span id="typeof">typeof</span>
+****
 
 JavaScript 中的变量是松散类型的，在声明时并不会指定变量的类型，所以 JavaScript 提供了 `typeof` 关键字来检查变量中存储的数据的类型。
 
@@ -94,7 +97,90 @@ JavaScript 的实现中使用 32 位的长度存储数据，并使用低 3 位�
 
 综上，`typeof null` 的返回值是 'object'。
 
-## <span id="isArray">Array.isArray()</span>
+### <span id="instanceof">instanceof</span>
+****
+
+```javascript
+a instanceof Array;
+```
+
+typeof 操作符主要用来判断数值是不是基本数据类型，以便于与引用类型(Object)进行区别。而 instanceof 操作符则是用来判断两个对象之间关系的，从操作符的名称来看好像是判断 `a` 是否为 Arrat 的实例，但是在 JavaScript 中并不存在真正的 **类** 和 **实例**，所以 instanceof 操作符真正执行的流程是判断 Array 的原型(prototype) 是否在 a 的原型链上(在原型链上的位置不影响)。对基本数据类型使用 instanceof 操作符时会抛出类型错误。
+
+在 ECMAScript5 及其之前的版本中，使用 instanceof 操作符进行判断时引擎会在内部执行如下步骤判断：
+
+**[InstanceofOperator](https://tc39.github.io/ecma262/#sec-instanceofoperator)**
+
+```ecma262
+1、If Type(target) is not Object, throw a TypeError exception.
+2、If IsCallable(target) is false, throw a TypeError exception.
+3、Return ? OrdinaryHasInstance(target, V).
+```
+
+而在 ECMAScript6 这个版本中，新增了 Symbol 这种数据类型，并且定义了常量 **Symbol.hasInstance**，如果当前环境支持 Symbol 类型，并且被操作的数值有 Symbol.hasInstance 属性时，会调用该属性指向的方法来判断 a 是否为 Array 的“实例”：
+
+**[InstanceofOperator](https://tc39.github.io/ecma262/#sec-instanceofoperator):**
+
+```ecma262
+The abstract operation InstanceofOperator(V, target) implements the generic
+algorithm for determining if ECMAScript value V is an instance of object target
+either by consulting target's @@hasinstance method or, if absent, determining
+whether the value of target's prototype property is present in V's
+prototype chain. This abstract operation performs the following steps:
+
+判断 V 是否为 target 的实例，如果 target 对象有 @@hasinstance 属性则调用该方法；
+如果没有，则判断 target 的原型(prototype) 是否在 V 的原型链上：
+
+// 判断 target 是否为对象
+1、If Type(target) is not Object, throw a TypeError exception.
+// 判断 target 对象是否有 @@hasInstance 属性
+2、Let instOfHandler be ? GetMethod(target, @@hasInstance).
+3、If instOfHandler is not undefined, then
+	// 调用 @@hasInstance 属性指向的方法，将返回结果转换为布尔值
+	a、Return ToBoolean(? Call(instOfHandler, target, « V »)).
+// 判断 target 的构造器是否为一个具有内部属性 [[Call]] 的函数
+// 即判断 target.prototype.constructor 是否为一个具有 [[Call]] 属性的函数
+4、If IsCallable(target) is false, throw a TypeError exception.
+// 返回判断后的结果
+5、Return ? OrdinaryHasInstance(target, V).
+```
+
+**[OrdinaryHasInstance(target, V)](https://tc39.github.io/ecma262/#sec-ordinaryhasinstance):**
+
+```ecma262
+OrdinaryHasInstance ( C, O )：
+// 判断 C 的构造器是否为一个具有内部属性 [[Call]] 的函数
+// 即判断 C.prototype.constructor 是否为一个具有 [[Call]] 属性的函数
+1、If IsCallable(C) is false, return false.
+2、If C has a [[BoundTargetFunction]] internal slot, then
+	a、Let BC be C.[[BoundTargetFunction]].
+	b、Return ? InstanceofOperator(O, BC).
+// 判断 O 是否为对象
+3、If Type(O) is not Object, return false.
+// 获取 C 的原型
+4、Let P be ? Get(C, "prototype").
+// 判断 C 的原型 P 是否为对象
+5、If Type(P) is not Object, throw a TypeError exception.
+// 判断 C 的原型 P 与 O 的原型是否为同一个值(即同一个对象)
+// 重复此步骤，直到遍历完 O 的原型链或者遇到原型链中的某个原型与 C 的原型 P 相同返回true
+// 遍历完之后，O === null，返回 false，即 P 不在 O 的原型链上
+6、Repeat, // 重复执行，直到遍历完 O 的原型链
+	a、Set O to ? O.[[GetPrototypeOf]]().
+	b、If O is null, return false.
+	c、If SameValue(P, O) is true, return true.
+```
+
+在 ECMAScript6 的规范中，@@hasInstance 在内部被调用时也是按照 **[OrdinaryHasInstance(target, V)](https://tc39.github.io/ecma262/#sec-ordinaryhasinstance):** 中的步骤执行判断。
+
+由于 instanceof 操作符和内部属性 @@hasInstance 在规范中定义的算法逻辑相同(有细微的差别)，所以可以使用下面的代码来模仿 @@hasInstance 属性指向的判断方法：
+
+```javascript
+function myInstanceof(value, Type) {
+	return Type.prototype.isPrototypeOf(value);
+}
+```
+
+### <span id="isArray">Array.isArray()</span>
+****
 
 在 JavaScript 中，`Array.isArray` 方法的本质是用来检查数据类型的，该方法特别的地方在于其只用来检查一种数据类型，即被检测的值是否为数组。我们知道，可以通过 `variable instanceof Array` 这种方式来判断一个值是否为数组，为什么还要设置一个单独的方法来判断一个变量中的值是不是数组呢？这其实是一个历史遗留问题，也是一个涉及到 web 安全的问题：
 
@@ -129,7 +215,9 @@ The abstract operation IsArray takes one argument argument, and performs the fol
 4、Return false. // 如不符合以上条件，返回 false
 ```
 
-## <span id="toString">Object.prototype.toString()</span>
+### <span id="toString">Object.prototype.toString()</span>
+
+****
 
 在 JavaScript 中，所有以 `[[propertyName]]` 形式表示的都是内部属性，这些内部属性只能在语言内部访问到，不对外部暴露，所以开发者不能直接通过代码访问这些属性，也就拿不到这些属性的值。通常情况下，这些内部属性供语言实现在内部使用来实现一些功能；也有浏览器厂商会通过非标准的方式向外部暴露一些内部属性，如 Chrome 浏览器中暴露的 `__proto__` 属性(规范中规定的基于该内部属性进行比较操作的方法为 **object.getPrototypeOf()**)。需要注意的是，虽然浏览器厂商向外暴露了这些内部属性，但这些实现是没有写在规范(ecma262) 中的，在未来可能会被移除，所以在生产环境中不建议使用这些不规范的属性。
 
@@ -192,7 +280,7 @@ let symbol = Symbol(symbol) // 注意，Symbol 没有 [[Construct]] 属性，所
 Object.prototype.toString.call(symbol) // "[object Symbol]"
 ```
 
-## Links
+## Links 🐬
 
 参考链接如下，排名不分先后：
 
