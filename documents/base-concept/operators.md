@@ -1,5 +1,10 @@
 # JavaScript 中的操作符
 
+* [关系操作符](#relational)
+* [相等操作符](#equal)
+* [逗号操作符](#comma)
+* [Author Info](#author)
+
 在 JavaScript 中使用操作符时，最经常用到，也最容易搞错的，就是在使用操作符时 JavaScript 引擎自动进行的隐式类型转换。
 
 本文会从 ECMA 规范的层面来讲一下不同操作符在执行时的运行规则，从规范的角度来理解一个操作符的结果为什么是输出的那样，以及具体实现与规范不同的地方。
@@ -293,7 +298,7 @@ Such a comparison is performed as follows:
 
 不同操作符之间的计算规则虽然有相似的地方，但是并不完全一样，所以不要盲目地生搬硬套。
 
-## 逗号操作符
+## <span id="comma">逗号操作符</span>
 
 逗号操作符需要注意的点比较少。
 
@@ -313,7 +318,7 @@ let a = (1, 2, 3, 4)	// 4
 
 上面的例子中，逗号操作符用来给变量 `a` 赋值。逗号操作符会取最后一个值赋值给变量 `a`。这是逗号操作符的一种合法用法，但是好像并没有多大的用处。
 
-## Author Info 🌟
+## <span id="author">Author Info 🌟</span>
 
 * [GitHub](https://github.com/Tao-Quixote)
 * Email: <web.taox@gmail.com>
