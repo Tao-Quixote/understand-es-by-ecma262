@@ -4,6 +4,8 @@
 
 同时，该仓库中的 `documents/translations/` 目录中存放的都是跟 JavaScript 相关的博文，大多是从底层、原理方面来解释 JavaScript 中的特性的。
 
+**⚠️ GitHub-pages 目前有个问题：只有在刚创建时，才会将文档中以 .md 结尾的链接转换为 .html 结尾的链接，以便于跳转；创建之后新增的以 .md 结尾的链接不会自动转换为 .html 结尾的链接，所以如果访问时跳转到了以 .md 结尾的链接，请手动修改链接地址。如果在这个引用里全部使用 .html 结尾的链接，则在仓库中不能正常跳转，二者只能选其一，作者选择了在仓库以及本地开发时可以正常跳转。所以如果通过 [http://understand-es-by-ecma262.taojihede.com/](http://understand-es-by-ecma262.taojihede.com/) 访问时发现打开了源文件，请手动修改链接。**
+
 ## 目录 📙
 
 * 基本概念
