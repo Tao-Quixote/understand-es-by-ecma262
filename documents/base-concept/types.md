@@ -1,5 +1,17 @@
 # JavaScript 中的数据类型
 
+* [给 JavaScript 中的数据分类](#category)
+	* [typeof](#typeof)
+	* [instanceof](#instanceof)
+	* [Array.isArray](#isArray)
+	* [Object.prototype.toString()](toString)
+* [Number 类型](#number)
+	* [Number(value) 转换规范](#draft)
+	* [特殊值 NaN](#NaN)
+	* [window.isNaN VS Number.isNaN](#isNaN)
+	* [另一个有趣的现象](#number-toString)
+* [Author Info](#author)
+
 JavaScript 中的数据类型分类两大类：
 
 基本数据类型：
@@ -22,7 +34,7 @@ JavaScript 中的数据类型分类两大类：
 
 关于 ES6 之前的数据类型分类，可以参考 Dr. Axel Rauschmayer 的博文 [Categorizing values in JavaScript(对 JavaScript 中的值进行分类)](http://2ality.com/2013/01/categorizing-values.html)。
 
-## 给 JavaScript 中的数据分类 🍭
+## <span id="category">给 JavaScript 中的数据分类 🍭</span>
 
 JavaScript 中有四种方式给数值分类：
 
@@ -280,6 +292,187 @@ let symbol = Symbol(symbol) // 注意，Symbol 没有 [[Construct]] 属性，所
 Object.prototype.toString.call(symbol) // "[object Symbol]"
 ```
 
+## <span id="number">Number 类型</span>
+
+在 JavaScript 中，当我们对一个数值进行如下操作的时候，引擎会在内部自动调用 `Number(value)` 方法将数值进行数据类型转换：
+
+* 对数值应用一元操作符(a++, a--, ++a, --a)时
+* 对数值应用乘性操作符(*, /, %)时
+* 对数值应用加性操作符(+, -)，如果其中一个操作数为数字时
+
+当对数值进行如上几种操作时，引擎会将非数值的操作数转换为数字类型，然后再进行运算。那么引擎是按照什么规则来转换非数值的数值呢，我们来看一下 ecma-262 草案中是怎么规定的：
+
+### <span id="draft">Number(value) 转换规范</span>
+
+**[Number ( value ) - 规范步骤](https://tc39.github.io/ecma262/#sec-tonumber) 如下：**
+
+```ecma262
+// 如果没传参，则返回 0
+1、If no arguments were passed to this function invocation, let n be +0.
+// 如果传参，则调用 ToNumber(value) 进行转换后赋值给 n
+2、Else, let n be ? ToNumber(value).
+// 如果不是通过 new 关键字调用，则返回基本数据类型的 n
+3、If NewTarget is undefined, return n.
+// 使用 OrdinaryCreateFromConstructor 方法调用 [[Construct]] 方法创建 Number 实例
+4、Let O be ? OrdinaryCreateFromConstructor(NewTarget, "%NumberPrototype%", « [[NumberData]] »).
+// 设置内部属性 [[NumberData]] 的值为 n(即转换后的数字的值)
+5、Set O.[[NumberData]] to n.
+// 返回 Number 包装后的对象
+6、Return O.
+```
+
+**<span id="tonumber">[ToNumber(argument) - 规范步骤](https://tc39.github.io/ecma262/#sec-tonumber)</span> 如下：**
+
+ToNumber(argument) 根据下面表格中的规则将 argument 转换为 Number 类型中的一种值：
+
+<table>
+	<tbody>
+		<tr>
+			<th>Argument Type</th>
+			<th>Result</th>
+		</tr>
+	<tr>
+		<td>Undefined</td>
+		<td>Return <emu-val>NaN</emu-val>.</td>
+	</tr>
+	<tr>
+		<td>Null</td>
+		<td>Return <emu-val>+0</emu-val>.</td>
+	</tr>
+	<tr>
+		<td>Boolean</td>
+		<td>If <var class="referenced">argument</var> is <emu-val>true</emu-val>, return 1. If <var class="referenced">argument</var> is <emu-val>false</emu-val>, return <emu-val>+0</emu-val>.</td>
+	</tr>
+	<tr>
+		<td>Number</td>
+		<td>Return <var class="referenced">argument</var> (no conversion). // 不转换，直接返回</td>
+	</tr>
+	<tr>
+		<td>String</td>
+		<td>See grammar and conversion algorithm below. // 参考 Object</td>
+	</tr>
+	<tr>
+		<td>Symbol</td>
+		<td>Throw a
+			<emu-val>TypeError</emu-val>
+			exception. // 抛出异常
+		</td>
+	</tr>
+	<tr>
+		<td>Object</td>
+		<td>
+			<p>Apply the following steps:</p>
+			<emu-alg>
+				<ol>
+					<li>Let <var>primValue</var> be ?&nbsp;<emu-xref aoid="ToPrimitive" id="_ref_1218"><a href="#sec-toprimitive">ToPrimitive</a></emu-xref>(<var class="referenced">argument</var>, hint Number). // 求对象的初始值</li>
+					<li>Return ?&nbsp;<emu-xref aoid="ToNumber" id="_ref_1219"><a href="#sec-tonumber">ToNumber</a></emu-xref>(<var>primValue</var>). // 对初始值递归调用该方法</li>
+		  		</ol>
+		 </emu-alg>
+		</td>
+	</tr>
+	</tbody>
+</table>
+
+由上面的规范可知，Number(value) 的规范步骤为：
+
+* 如果为传参则返回 **+0**
+* 如果非 new 调用，则返回 [ToNumber(argument)](#tonumber)转换后的值
+* 如果为 new 调用，则返回数字对应的基本包装类对象，基本数据类型值存放在该对象的内部属性 `[[NumberData]]` 中
+
+### <span id="NaN">特殊值 NaN</span>
+
+在 Number 所有值中，存在一个特殊值 **NaN**，这个值是由一个 “非法” 的表达式产生的，这里的非法的意思是指在数学运算中没有意义的运算，比如：
+
+```javascript
+1 / 'Hello World'
+```
+
+当引擎执行一个数学运算时，如果两个操作数中的任意一个在经过 Number(value) 转换之后仍然不是数字，那么该运算(一个运算其实就是一个表达式)在 JavaScript 中的返回值即为 **NaN**；如果两个数值都能转换为合法的数字，则表达式会返回正确的结果。
+
+在 ecma-262 中是这么定义 NaN 的：
+
+> The Number type has exactly 18437736874454810627 (that is, 264-253+3) values, representing the double-precision 64-bit format IEEE 754-2008 values as specified in the IEEE Standard for Binary Floating-Point Arithmetic, except that the 9007199254740990 (that is, 253-2) distinct “Not-a-Number” values of the IEEE Standard are represented in ECMAScript as a single special NaN value. (Note that the NaN value is produced by the program expression NaN.) In some implementations, external code might be able to detect a difference between various Not-a-Number values, but such behaviour is implementation-dependent; to ECMAScript code, all NaN values are indistinguishable from each other.
+
+即由 9007199254740990 (2**53-2) 这个数值表示 “Not-a-Number” 这种情况；在某些实现中外部代码可以检测不同 NaN 的区别，但是这些行为是与具体实现关联的；在 ECMAScript 的代码中，所有 NaN 的值彼此之间的区别是模糊的，不向外部暴露的，外部代码不能检测不同 NaN 之间的区别。
+
+这也是 **NaN** 特殊的地方，即 `NaN` 不与任何值相等，包括其本身。这种表现咋一看好像很奇怪，但是也有其存在的合理性：在 ECMAScript 的实现中，由一个特殊的值 NaN 来表示 “不是一个数字” 这种结果，但是产生 NaN 的表达式有无数多种可能，如下所示：
+
+```javascript
+1 / 'a' // expression1
+1 / Symbol.iterator // expression2
+```
+
+一个 NaN 由 expression1 这个表达式返回，另外一个 NaN 由 expression2 这个表达式返回，所以不同的 NaN 可能是由不同的表达式产生的，所以 ECMAScript 在规范中规定了 NaN 与任何值都不相等，包括其自身，在 ECMAScirpt 中，是否相等是通过相等操作符(Equality Operators)来判断的，其定义如下：
+
+```ecma262
+// x === y
+1、If Type(x) is different from Type(y), return false.
+2、If Type(x) is Number, then
+	a、If x is NaN, return false. // anchor1
+	b、If y is NaN, return false. // anchor2
+	c、If x is the same Number value as y, return true.
+	d、If x is +0 and y is -0, return true.
+	e、If x is -0 and y is +0, return true.
+	f、Return false.
+3、Return SameValueNonNumber(x, y).
+```
+
+即不管相等操作符的左边还是右边存在 NaN 时，比较结果为 false。
+
+**注：1 / 0 在数学中是合法的运算，结果为 正无穷(数学符号为：∞，在 ECMAScript 中用 Infinite 表示)；同理也存在 负无穷(数学符号为：-∞，在 ECMAScript 中用 -Infinite 表示)。**
+
+### <span id="isNaN">Number.isNaN VS window.isNaN</span>
+
+在 ECMAScript 的实现的全局对象中存在一个检测是否为 NaN 的方法 `global.isNaN(number)`；在 ECMA2015 这个版本中新增一个判断是否为 NaN 的方法 `Number.isNaN(number)`，这两个方法在规范中的定义如下：
+
+**[isNaN ( number )](https://tc39.github.io/ecma262/#sec-isnan-number)：**
+
+```javascript
+1、Let num be ? ToNumber(number).
+2、If num is NaN, return true.
+3、Otherwise, return false.
+```
+
+**[Number.isNaN ( number )](https://tc39.github.io/ecma262/#sec-number.isnan)：**
+
+```javascript
+1、If Type(number) is not Number, return false.
+2、If number is NaN, return true.
+3、Otherwise, return false.
+```
+
+由上面的定义可知，**isNaN(number)** 会对数据进行类型转换，而 **Number.isNaN(number)** 更像是严格相等判断。[相等操作符](./operators.md#equal)
+
+### <span id="number-toString">另一个有趣的现象</span>
+
+在平时的开发中我们可能会遇到过这种情况：
+
+```javascript
+2.toString() // Uncaught SyntaxError: Invalid or unexpected token
+2..toString() // '2'
+2.1.toString() // '2.1'
+(2).toString() // '2'
+```
+
+为什么 `2.toString()` 会报错呢？关于这个问题可以参考 [Why does 2..toString() work? [duplicate]
+](https://stackoverflow.com/questions/15458774/why-does-2-tostring-work) 中一个非常形象的回答：
+
+**2.toString()：**
+> The interpreter sees 2 and thinks, "oh, a number!" Then, it sees the dot and thinks, "oh, a decimal number!" And then, it goes to the next character and sees a t, and it gets confused. "2.t is not a valid decimal number," it says, as it throws a syntax error.
+
+**2..toString()：**
+> The interpreter sees 2 and thinks, "oh, a number!" Then, it sees the dot and thinks, "oh, a decimal number!" Then, it sees another dot and thinks, "oh, I guess that was the end of our number. Now, we're looking at the properties of this object (the number 2.0)." Then, it calls the toString method of the 2.0 object.
+
+**另外一个从原理回答的答案：**
+
+> That's because 2. is parsed as 2.0, so 2..toString() is equivalent to 2.0.toString(), which is a valid expression.
+
+> On the other hand, 2.toString() is parsed as 2.0toString(), which is a syntax error.
+
+即 `2..toString` => `2.0.toString()`，引擎在解析 `2.` 时会认为这是一个浮点数，所以会解析为 `2.0`，然后遇到第二个 `.` 时认为这是取属性进行操作；
+
+而 `2.toString` => `2.0toString`，引擎解析时会判定 0 后面跟的 `toString` 是一个错误的 词法单元(token)，所以会抛出一个语法错误的异常。
+
 ## Links 🐬
 
 参考链接如下，排名不分先后：
@@ -287,8 +480,10 @@ Object.prototype.toString.call(symbol) // "[object Symbol]"
 * [Determining with absolute accuracy whether or not a JavaScript object is an array](http://web.mit.edu/jwalden/www/isArray.html)
 * [The history of “typeof null”](http://2ality.com/2013/10/typeof-null.html)
 * [Categorizing values in JavaScript](http://2ality.com/2013/01/categorizing-values.html)
+* [Why does 2..toString() work? [duplicate]
+](https://stackoverflow.com/questions/15458774/why-does-2-tostring-work)
 
-## Author Info 🌟
+## <span id="author">Author Info 🌟</span>
 
 * [GitHub](https://github.com/Tao-Quixote)
 * Email: <web.taox@gmail.com>
