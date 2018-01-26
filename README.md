@@ -12,6 +12,7 @@
 	* [数据类型](./documents/base-concept/types.md)
 	* [操作符](./documents/base-concept/operators.md)
 	* [自动分号插入 - ASI](./documents/base-concept/semicolon.md)
+	* [void 操作符](./documents/base-concept/void-operator.md)
 * 翻译
 	* ["Typeof null" 的历史](./documents/translations/typeof-null.md)
 
