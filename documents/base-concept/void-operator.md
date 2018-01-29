@@ -135,6 +135,105 @@ foo(); // 3
 
 在函数作用域中可以声明名为 undefined 变量，与普通变量无任何区别。
 
+### 2、立即执行函数表达式
+
+在平时的开发过程中，我们经常会使用立即执行函数(IIFE)，而立即执行函数最常见的两种写法如下： 
+
+```javascript
+(function () {})()
+```
+或者：
+
+```javascript
+(function () {}())
+```
+
+而下面两种方式的立即执行函数却不能正常工作：
+
+```javascript
+// example 1
+function foo (p) {console.log('inner: ' + p);}(3) // 结果：3
+```
+
+```javascript
+// example 2
+function (p) {console.log('inner: ' + p);}(3) // Uncaught SyntaxError: Unexpected token (
+```
+
+在第一个例子中，`function foo (p) {console.log('inner: ' + p);}(3)` 会被解析为两部分：函数声明语句 `function foo (p) {console.log('inner: ' + p);}` 和表达式 `(3)`，所以在执行时，第一部分仅仅作为函数声明，第二部分作为语句(也是表达式)执行，所以声明的函数不会执行且返回值为 `3`。
+
+在第二个例子中，`function (p) {console.log('inner: ' + p);}(3)` 同样会被解析为两部分：函数声明语句 `function (p) {console.log('inner: ' + p);}` 和表达式 `(3)`，由于第一部分是一个匿名函数，且不在赋值语句的右边，所以在语法中是不合法的，因此 JavaScript 引擎会在执行时抛出错误并中断执行，所以这个例子的执行结果是抛出错误。
+
+但是如果在两个例子的前面加上 `void` 操作符，这两个例子都可以正常的编译运行：
+
+```javascript
+void function foo (p) {console.log('inner: ' + p);}(3) // inner: 3
+void function (p) {console.log('inner: ' + p);}(3) // inner: 3
+```
+
+这是因为 `void` 操作符后的部分会被当成是 **一元表达式(UnaryExpression)**，即此时 `void` 后面的部分不再是 **函数声明语句**，而是 **表达式**，所以函数会被执行，函数后的 `(3)` 会被 JavaScript 引擎当成是对函数的调用传参。
+
+在 ECMAScript 中，不只 `void` 操作符可以将函数声明转化为表达式，其他很多操作符都有这种功能：
+
+#### 2.1 一元操作符(Unary Operator)
+
+所有的一元操作符都具有和 void 操作符一样的功能，所有跟在一元操作符后的函数声明都会被当成表达式来对待，所以所有的一元操作符都可以用来使 **IIFE** 立即执行；ECMAScript 中的一元操作符如下：
+
+**UnaryExpression：**
+
+* **delete** UnaryExpression [?Yield, ?Await]
+* **void** UnaryExpression [?Yield, ?Await]
+* **typeof** UnaryExpression [?Yield, ?Await]
+* **+** UnaryExpression [?Yield, ?Await]
+* **-** UnaryExpression [?Yield, ?Await]
+* **~** UnaryExpression [?Yield, ?Await]
+* **!** UnaryExpression [?Yield, ?Await]
+* **[+Await]** AwaitExpression [?Yield]
+
+以上所有的 **一元操作符** 跟的函数声明语句都会被当成表达式来对待，即所有如下的语句都会将函数作为 IIFE 对待：
+
+```javascript
+UnaryOperator function (p) {}(3)
+```
+
+#### 2.2 逗号操作符(Comma Operator)
+
+在逗号操作符构成的逗号表达式中，每个逗号分隔开的语句都会被当成表达式执行，所以，逗号表达式也可以用来执行 IIFE：
+
+```javascript
+let b = function (p) {console.log('IIFE: ' + p); reutrn p}(3), 3 + 6; // 9
+b // 3
+```
+
+#### 2.3 关系操作符(Relational Operators)
+
+ECMAScript 中的关系操作符如下：
+
+RelationalExpression[In, Yield, Await]:
+
+ShiftExpression[?Yield, ?Await]
+
+* RelationalExpression[?In, ?Yield, ?Await] **<** ShiftExpression[?Yield, ?Await]
+* RelationalExpression[?In, ?Yield, ?Await] **>** ShiftExpression[?Yield, ?Await]
+* RelationalExpression[?In, ?Yield, ?Await] **<=** ShiftExpression[?Yield, ?Await]
+* RelationalExpression[?In, ?Yield, ?Await] **>=** ShiftExpression[?Yield, ?Await]
+* RelationalExpression[?In, ?Yield, ?Await] **instanceof** ShiftExpression[?Yield, ?Await]
+* [+In]RelationalExpression[+In, ?Yield, ?Await] **in** ShiftExpression[?Yield, ?Await]
+
+在上面所有的关系操作符中，如果 IIFE 处在 **ShiftExpression** 的位置，则可以被 JavaScript 引擎作为 IIFE 执行；如果 IIFE 处在 **RelationalExpression** 的位置，则会被 JavaScript 引擎作为函数声明来对待，所以 IIFE 不会被执行，且如果是 **匿名 IIFE** 时，JavaScript 引擎会报错。
+
+例：
+
+```javascript
+3 > function (p) {console.log('IIFE: ' + p); return p}(3) // IIFE: 3 false
+3 instanceof function (p) {console.log(p + 'h'); return Object}(3) // 3h false
+function (p) {console.log('IIFE: ' + p); return p}(3) in Object // Uncaught SyntaxError: Unexpected token (
+```
+
+从上面的例子可以验证，IIFE 放在关系操作符的左边时会报错，而放在关系操作符的右边时会被当成 IIFE 执行。
+
+...
+
 ## Links 🐬
 
 参考链接如下，排名不分先后：
