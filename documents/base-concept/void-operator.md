@@ -1,4 +1,4 @@
-# void 操作符 🗑
+# void 操作符 👾
 
 在阅读 HTML 和 JavaScript 代码时，我们经常会看到 `void 0` 这个表达式。
 
@@ -234,6 +234,51 @@ function (p) {console.log('IIFE: ' + p); return p}(3) in Object // Uncaught Synt
 
 ...
 
+### 3、JavaScript URIs
+
+当我们在浏览器的地址栏中输入如下代码：
+
+```javascript
+javascript: alert("hello world")
+```
+并点击“回车”按键时，浏览器页面中会弹出弹框内容为 **hello world**。这是为什么呢？上面的代码分为两部分，第一部分为 `javascript:`，第二部分为 `alert("hello world")`：第一部分叫做 **伪协议(pesudo-protocol)**，之所以叫做伪协议是因为该协议并不是真正的协议，而是浏览器中用来模仿 **http:**、**mailto:** 等协议的伪协议。当浏览器对地址进行解析时如果遇到 `javascript:`，则会认为该“协议”之后的部分为 JavaScript 代码，并且会将该“协议”之后的部分交给 JavaScript 引擎解释执行。
+
+同样的，如果将包含 `javascript:` 的代码放在 `a` 标签的 `href` 属性中，当该标签被点击时，浏览器在解析时遇到 `javascript:` 部分时也会将其后的部分当成是 JavaScript 代码交给 JavaScript 引擎来解释执行。但是放在 `href` 属性中的 `javascript: xxx` 与在地址栏中输入有一点差别：如果 `href` 属性中 `javascript: xxx` 部分的返回值不是 **undefined**，浏览器会使用返回值替换网页内容；如果返回值为 **undefined**，则什么都不做，而在老版本的 JavaScript 中，为了防止 `undefined` 变量被意外篡改，所以经常使用 `javascript: void(0)` 这种方式来获取真正的 `undefined`。因为这种特性，在 HTML 文件中经常会遇到下面的代码：
+
+```html
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Pseudo-Protocol</title>
+	</head>
+	<body>
+		<p>
+			<a href="javascript:alert('Hello world!');">Say hello</a>
+		</p>
+	</body>
+</html>
+```
+
+即将要做的事情放在 `a` 标签的 `href` 属性中来实现。在实际的开发中，不推荐使用该“伪协议”来响应用户的点击事件，对于用户的点击事件，应该放在事件监听机制中实现；而 `href` 中应该放置当 JavaScript 被禁止时的替换页面：
+
+```html
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Pseudo-Protocol</title>
+	</head>
+	<body>
+		<p>
+			<a href="alter.html" onclick="alert('Hello world!'); return false;">Say hello</a>
+		</p>
+	</body>
+</html>
+```
+
+**注：void 是 ECMAScript 中的一个操作符，并不是一个函数或者方法，所以在使用的过程中，可以使用圆括号(`void(0)`)，也可以不使用圆括号(`void 0`)。**
+
 ## Links 🐬
 
 参考链接如下，排名不分先后：
@@ -241,6 +286,7 @@ function (p) {console.log('IIFE: ' + p); return p}(3) in Object // Uncaught Synt
 * [void operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/void)
 * [ecma-262 The void Operator](https://tc39.github.io/ecma262/#sec-void-operator)
 * [javascript void 0](http://www.tizag.com/javascriptT/javascriptvoid.php)
+* [The "javascript" Pseudo-Protocol](https://www.webucator.com/tutorial/learn-javascript/javascript-basics/the-javascript-pseudo-protocol.cfm)
 
 ## <span id="author">Author Info 🌟</span>
 
