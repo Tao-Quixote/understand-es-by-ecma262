@@ -5,6 +5,12 @@
 		* [case1](offending-token-case1)
 		* [case2](offending-token-case2)
 		* [case3](offending-token-case3)
+* [不能解析为完整的 ECMAScript 程序语句(goal nonterminal / complete ECMAScript Program)](#complete-ecmascript-program)
+	* [例子](#complete-ecmascript-program-examples)
+		* [case1](#complete-ecmascript-progra-case1)
+		* [case2](#complete-ecmascript-progra-case2)
+		* [case3](#complete-ecmascript-progra-case3)
+		* [case4](#complete-ecmascript-progra-case4)
 * [Author Info](#author)
 
 在开发过程中，为了对代码进行预检测和格式规范化，我们会在项目的开发环境中引入第三方的代码检查工具，如：[ESLint](https://eslint.org/)、[JSLint](http://www.jslint.com/) 等。为了代码格式(如缩进、换行等)的统一，这些工具中往往会定义一些针对这些项的规则，如缩进使用 tab 还是空格，用几个空格等。
@@ -78,6 +84,69 @@ do {
 } while (true);
 console.log('')
 ```
+
+**注：case[n] 对应上面的顺序。**
+
+## <span id="complete-ecmascript-program">不能解析为完整的 ECMAScript 程序语句(goal nonterminal / complete ECMAScript Program)</span>
+
+第二种会执行 ASI 的情况是当一个赋值语句中存在换行且不符合语法的情况时，JavaScript 引擎会在换行符之前添加分号，将两行分成两个语句来对待。
+
+ecma-262 规范中关于遇到不能解析为完整语句时自动插入分号的规则如下：
+
+> When, as the source text is parsed from left to right, the end of the input stream of tokens is encountered and the parser is unable to parse the input token stream as a single instance of the goal nonterminal, then a semicolon is automatically inserted at the end of the input stream.
+
+在这种情况中，赋值语句中是要存在换行符的，否则 JavaScript 引擎在解析时会抛出语法错误(SyntaxError)或者引用错误(ReferenceError)：
+
+### <span id="complete-ecmascript-program-examples">例子 🌰</span>
+
+#### <span id="complete-ecmascript-progra-case1">case1</span>
+
+ReferenceError:
+
+```javascript
+let a = 3
+let b = 4 ++a // Uncaught ReferenceError: Invalid left-hand side expression in postfix operation
+```
+在这个例子中，由于 `let b = 4 ++a` 会被解析为 `let b = (4++) a`，`4++` 在 ECMAScript 中是非法的，所以会报错。
+
+#### <span id="complete-ecmascript-progra-case2">case2</span>
+
+SyntaxError: Unexpected number：
+
+```javascript
+let a = 3
+let b = a++ 4 // Uncaught SyntaxError: Unexpected number
+```
+
+上面这种情况下，JavaScript 引擎在解析到 `4` 时也会因为不符合语法而报错。
+
+#### <span id="complete-ecmascript-progra-case3">case3</span>
+
+SyntaxError: Unexpected identifier：
+
+```javascript
+let a = 3
+let c = 4
+let b = a++ c
+```
+
+同 [case2](#complete-ecmascript-progra-case2)，JavaScript 引擎在解析到标识符 `c` 时会因为不符合语法报错，而不会在适当的地方添加分号。
+
+#### <span id="complete-ecmascript-progra-case4">case4</span>
+
+ASI:
+
+```javascript
+// source
+a = b
+++c
+
+// translated
+a = b;
+++c
+```
+
+在符合 ECMAScript 语法的情况下，如果 ECMAScript 的实现版本在遇到无法解析为完整且合法的语句的时候，应当在输入流(input stream)的结尾处添加分号。
 
 **注：case[n] 对应上面的顺序。**
 
