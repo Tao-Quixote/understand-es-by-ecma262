@@ -11,6 +11,8 @@
 		* [case2](#complete-ecmascript-progra-case2)
 		* [case3](#complete-ecmascript-progra-case3)
 		* [case4](#complete-ecmascript-progra-case4)
+* [restricted productions](#restricted-productions)
+* [参考链接](#relation)
 * [Author Info](#author)
 
 在开发过程中，为了对代码进行预检测和格式规范化，我们会在项目的开发环境中引入第三方的代码检查工具，如：[ESLint](https://eslint.org/)、[JSLint](http://www.jslint.com/) 等。为了代码格式(如缩进、换行等)的统一，这些工具中往往会定义一些针对这些项的规则，如缩进使用 tab 还是空格，用几个空格等。
@@ -149,6 +151,52 @@ a = b;
 在符合 ECMAScript 语法的情况下，如果 ECMAScript 的实现版本在遇到无法解析为完整且合法的语句的时候，应当在输入流(input stream)的结尾处添加分号。
 
 **注：case[n] 对应上面的顺序。**
+
+## <span id="restricted-productions">restricted productions</span>
+
+## 陷阱 🕸️
+
+抛开是否应该手动添加分号的争论，如果不在必要语句后面添加分号，则可能会触发意想不到的陷阱，例如：
+
+### 1、关键词后有行终止符
+
+```javascript
+// don't
+return
+3 + 2
+```
+
+因为在关键词 `return` 后有换行符，符合上面 [restricted productions](#restricted-productions) 中的情况，所以上面的代码会转换成下面的代码：
+
+```javascript
+return ;
+3 + 2
+```
+
+如果在一个函数中使用了上面的语句，则在进行函数调用时函数的返回值并不是 `5`，而是 `undefined`；并且，`3 + 2` 这个表达式并不会被调用。
+
+### 2、不能按预期触发
+
+在下面的代码中，第二行中的 `token` 会延续上一行，合法地重新组合，所以下面代码的执行结果可能并不是你想要的；而且，下面的代码在执行过程中可能会报错：
+
+```javascript
+func()
+[1, 2, 3, 4].forEach(function(){})
+```
+
+上面代码的执行过程如下：
+
+* 1、计算函数调用 `func()`，假设函数调用的返回值保存在变量 `r` 中；
+* 2、对函数调用的返回值 `r` 执行 `r[1,2,3,4]`;
+* 3、对 `r[1,2,3,4]` 的结果调用 `forEach`；
+
+上面的代码在被执行时，`func()[1,2,3,4]` 部分会解析为取 `func()` 返回结果的属性，即 `func()['4']`，所以如果函数调用的返回值为 `undefined` 时，不存在属性 `['4']` ，引擎会报错；随后会对 `func()['4']` 的结果调用 `forEach` 方法，如果 `func()['4']` 的结果为 `undefined` 时，不存在该方法，引擎同样会报错。
+
+综上，如果我们非常熟悉 ECMAScript 的 **ASI** 机制时，可以只在必要的地方添加 分号；而如果我们并不是非常熟悉该机制时，建议在书写代码的过程中加上分号，避免不必要的错误。
+
+## <span id="relation"参考链接 🔗</span>
+
+* [ECMA-262](https://tc39.github.io/ecma262/#sec-rules-of-automatic-semicolon-insertion)
 
 ## <span id="author">Author Info 🌟</span>
 
