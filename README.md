@@ -15,6 +15,9 @@
 	* [void 操作符](./documents/base-concept/void-operator.md)
 * 类型转换
 	* [ToBoolean](./documents/type-conversion/boolean.md)
+* Objects
+	* Date
+		* [toString & valueOf & toJSON](./documents/objects/date-tostring-valueof-tojson.md)
 * 翻译
 	* ["Typeof null" 的历史](./documents/translations/typeof-null.md)
 
