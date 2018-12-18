@@ -157,9 +157,12 @@ JSON.stringify(obj) // "{"date":"2018-04-16T11:02:37.849Z"}"
 
 ## <span id="to-json">toJSON</span>
 
+想查看 `JSON` 对象的小伙伴可以跳转 [Frontend-Tricks JSON](https://github.com/NinjiaHub/Frontend-Tricks/blob/master/documents/JS/json.md) 了解更多。
+
 `Date.prototype.toJSON` 方法在平时的开发中比较少使用，只有在将日期对象序列化的时候，JavaScript 引擎才会自动调用该方法，将日期对象转换为对应的时间字符串。`Date.prototype.toJSON` 方法返回的字符串与 `Date.prototype.toString` 方法返回的字符串不同，`Date.prototype.toJSON` 方法返回 `ISOString` 格式的字符串。下面我们来看一下 ECMA262 中是怎么规定 `Date.prototype.toJSON` 内部的抽象操作的：
 
 ***
+
 **[Date.prototype.toJSON(key)](https://tc39.github.io/ecma262/#sec-date.prototype.tojson)**
 
 * 1、Let **O** be ? ***ToObject(this value)***. // 将调用该方法的 对象/基本数据类型 转换为对应的包装对象
