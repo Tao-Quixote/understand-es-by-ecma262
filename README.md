@@ -14,7 +14,7 @@
 	* [自动分号插入 - ASI](./documents/base-concept/semicolon.md)
 	* [void 操作符](./documents/base-concept/void-operator.md)
 * 类型转换
-	* [ToBoolean](./documents/type-conversion/boolean.md)
+	* [ToBoolean - 转换为布尔值](./documents/type-conversion/boolean.md)
 * Objects
 	* Date
 		* [toString & valueOf & toJSON](./documents/objects/date-tostring-valueof-tojson.md)
@@ -44,3 +44,4 @@
 
 * [GitHub](https://github.com/Tao-Quixote)
 * Email: <web.taox@gmail.com>
+		
